@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RBAC Portal{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .sidebar-item {
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .role-admin { background: #fef3c7; color: #92400e; }
+        .role-staff { background: #dbeafe; color: #1e40af; }
+        .role-student { background: #d1fae5; color: #065f46; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="app" x-data="appData()" x-init="init()">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script>
+        function appData() {
+            return {
+                user: null,
+                token: localStorage.getItem('access_token'),
+                
+                init() {
+                    if (this.token) {
+                        this.fetchProfile();
+                    }
+                },
+                
+                async fetchProfile() {
+                    try {
+                        const response = await fetch('/api/profile', {
+                            headers: {
+                                'Authorization': `Bearer ${this.token}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            this.user = await response.json();
+                        } else {
+                            this.logout();
+                        }
+                    } catch (error) {
+                        console.error('Error fetching profile:', error);
+                        this.logout();
+                    }
+                },
+                
+                logout() {
+                    localStorage.removeItem('access_token');
+                    this.user = null;
+                    this.token = null;
+                    window.location.href = '/login';
+                },
+                
+                async apiCall(url, options = {}) {
+                    const defaultOptions = {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    };
+                    
+                    const mergedOptions = {
+                        ...defaultOptions,
+                        ...options,
+                        headers: {
+                            ...defaultOptions.headers,
+                            ...options.headers
+                        }
+                    };
+                    
+                    const response = await fetch(url, mergedOptions);
+                    
+                    if (response.status === 401) {
+                        this.logout();
+                        return;
+                    }
+                    
+                    return response;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
